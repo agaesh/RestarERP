@@ -53,3 +53,29 @@ def get_accounts():
             "pages": (total + limit - 1) // limit,
         },
     })
+
+#Route to Insert Accounts
+@app.route("/accounts", methods=["POST"])
+def insert_account():
+    data = request.get_json()
+
+    with SessionLocal() as session:
+        account = Account(
+            account_name=data.get("account_name"),
+            account_type=data.get("account_type"),
+            parent_id = data.get("parent_id"),
+            normal_balance=data.get("normal_balance"),
+            description=data.get("description"),
+            is_active=data.get("is_active", True),
+            created_at= datetime.datetime.now(),
+            updated_at=data.get("updated_at")
+        )
+
+        session.add(account)
+        session.commit()
+
+        return jsonify({
+            "message": "Account created",
+            "id": account.id
+        }), 201
+    
