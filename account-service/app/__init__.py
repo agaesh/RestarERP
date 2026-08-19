@@ -79,3 +79,51 @@ def insert_account():
             "id": account.id
         }), 201
     
+# Route to deactivate an account
+@app.route("/accounts", methods=["DELETE"])
+def delete_account():
+
+    account_id = request.args.get("id", type=int)
+
+    if not account_id:
+        return jsonify({
+            "message": "Account ID is required"
+        }), 400
+
+    with SessionLocal() as session:
+
+        account = session.get(Account, account_id)
+
+        if not account:
+            return jsonify({
+                "message": "Account not found"
+            }), 404
+
+        # Prevent deactivation if the account has active child accounts
+        child_exists = session.scalar(
+            select(Account.id)
+            .where(
+                Account.parent_id == account_id,
+                Account.is_active.is_(True)
+            )
+            .limit(1)
+        )
+
+        if child_exists:
+            return jsonify({
+                "message": "Account cannot be deactivated because it has active child accounts"
+            }), 400
+
+        # Soft delete
+        account.is_active = False
+        account.updated_at = datetime.datetime.now()
+
+        session.commit()
+
+        return jsonify({
+            "message": "Account deactivated successfully",
+            "id": account.id
+        }), 200
+     
+if __name__ == "__main__":
+    app.run(debug=True)
