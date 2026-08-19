@@ -67,6 +67,7 @@ def insert_account():
 
     with SessionLocal() as session:
         account = Account(
+            account_code=data.get("account_code"),
             account_name=data.get("account_name"),
             account_type=data.get("account_type"),
             parent_id = data.get("parent_id"),
@@ -110,7 +111,7 @@ def delete_account():
             select(Account.id)
             .where(
                 Account.parent_id == account_id,
-                Account.is_active.is_(True)
+                Account.is_active == True
             )
             .limit(1)
         )
