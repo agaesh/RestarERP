@@ -4,3 +4,5 @@ app/models/__pycache__/accounts.cpython-314.pyc
 account-service/app/__pycache__/__init__.cpython-314.pyc
 account-service/app/__pycache__/__init__.cpython-314.pyc
 account-service/app/models/__pycache__/accounts.cpython-314.pyc
+account-service/tests/__pycache__/test_accounts.cpython-314-pytest-9.1.1.pyc
+account-service/app/__pycache__/__init__.cpython-314.pyc
