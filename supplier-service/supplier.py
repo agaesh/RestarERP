@@ -16,7 +16,7 @@ class Supplier(Base):
 
     email_address = Column(String(50), nullable=True)
     website_url = Column(String(255), nullable=True)
-    contact_no = Column(String(30), nullable=True)
+    contact_no = Column(String(12), nullable=True)
     contact_no1 = Column(String(12), nullable=True)
     contact_no2 = Column(String(12), nullable=True)
     contact_no3 = Column(String(12), nullable=True)
