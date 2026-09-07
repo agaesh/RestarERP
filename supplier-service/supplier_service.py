@@ -76,16 +76,14 @@ def create_supplier():
         return jsonify({"message": "Validation failed", "errors": validated}), 400
 
 
-    columns = [
-        {
-            column.name:getattr(validated, column.name)
-        }
-        for column in Supplier.__table__.columns 
-    ]
+    columns = {
+        key: value
+        for key, value in validated.items()
+        if key in Supplier.__table__.columns.keys()
+    }
     with SessionLocal() as session:
-        supplier_name = validated.get("supplier_name") or validated.get("company_name")
         supplier = Supplier(
-           **columns
+            **columns
         )
         session.add(supplier)
         session.commit()
