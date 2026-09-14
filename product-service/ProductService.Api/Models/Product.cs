@@ -28,7 +28,7 @@ public class Product
 
     public string? vendor_barcode_no { get; set; }
 
-    [Column(TypeName = "decimal(18,2)")]
+    [Column(TypeName = "datetime2")]
     public DateTime create_date { get; set; } = DateTime.UtcNow;
     public DateTime? update_date { get; set; }
 }
