@@ -13,7 +13,7 @@ builder.Services.AddControllers();
 builder.Services.AddDbContext<ProductDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("RestarProducts")));
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
-builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<IProductService, RestarProduct.Services.ProductService>();
 
 var app = builder.Build();
 
