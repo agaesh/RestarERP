@@ -1,5 +1,8 @@
+using System.Text.Json.Serialization;
+
 namespace RestarProduct.Enums;
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ProductType
 {
     Unknown = 0,
