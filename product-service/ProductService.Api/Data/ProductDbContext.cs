@@ -12,6 +12,6 @@ public class ProductDbContext(DbContextOptions<ProductDbContext> options) : DbCo
     {
         modelBuilder.Entity<Product>()
             .Property(product => product.product_type)
-            .HasConversion<int>();
+            .HasConversion<string>();
     }
 }
