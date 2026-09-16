@@ -2,6 +2,11 @@ app/__pycache__/__init__.cpython-314.pyc
 app/core/__pycache__/database.cpython-314.pyc
 app/models/__pycache__/accounts.cpython-314.pyc
 account-service/app/__pycache__/__init__.cpython-314.pyc
+
+# .NET build output and IDE files
+**/bin/
+**/obj/
+.vs/
 account-service/app/__pycache__/__init__.cpython-314.pyc
 account-service/app/models/__pycache__/accounts.cpython-314.pyc
 account-service/tests/__pycache__/test_accounts.cpython-314-pytest-9.1.1.pyc
@@ -19,3 +24,4 @@ supplier-service/__pycache__/supplier.cpython-314.pyc
 supplier-service/__pycache__/supplier_service.cpython-314.pyc
 supplier-service/__pycache__/database.cpython-314.pyc
 supplier-service/__pycache__/__init__.cpython-314.pyc
+product-service/ProductService.Api/ProductService.Api.http
