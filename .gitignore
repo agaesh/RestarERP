@@ -25,4 +25,3 @@ supplier-service/__pycache__/supplier_service.cpython-314.pyc
 supplier-service/__pycache__/database.cpython-314.pyc
 supplier-service/__pycache__/__init__.cpython-314.pyc
 product-service/ProductService.Api/ProductService.Api.http
->>>>>>> 3931c43 (chore(.gitignore): update to include additional cache and build output files)
