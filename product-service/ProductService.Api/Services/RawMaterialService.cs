@@ -1,5 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using RestarProduct.Data;
 using RestarProduct.DTOs;
 using RestarProduct.Helpers;
 using RestarProduct.Interfaces;
@@ -8,7 +6,7 @@ using RestarProduct.Models;
 namespace RestarProduct.Services;
 
 public class RawMaterialService(
-    ProductDbContext dbContext,
+    IRawMaterialRepository repository,
     ILogger<RawMaterialService> logger) : IRawMaterialService
 {
     public async Task<IReadOnlyList<RawMaterialDTO>> GetAllAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default)
@@ -16,23 +14,9 @@ public class RawMaterialService(
         var normalizedPageNumber = pageNumber <= 0 ? 1 : pageNumber;
         var normalizedPageSize = pageSize <= 0 ? 10 : pageSize;
 
-        var materials = await dbContext.RawMaterials
-            .AsNoTracking()
-            .OrderBy(material => material.material_name)
-            .Skip((normalizedPageNumber - 1) * normalizedPageSize)
-            .Take(normalizedPageSize)
-            .Select(material => new RawMaterialDTO
-            {
-                id = material.id,
-                material_code = material.material_code,
-                material_name = material.material_name,
-                material_desc = material.material_desc,
-                uom = material.uom,
-                is_active = material.is_active,
-                create_date = material.create_date,
-                update_date = material.update_date
-            })
-            .ToListAsync(cancellationToken);
+        var materials = (await repository.GetPagedAsync(normalizedPageNumber, normalizedPageSize, cancellationToken))
+            .Select(ToDTO)
+            .ToList();
 
         logger.LogInformation("Retrieved {RawMaterialCount} raw materials for page {PageNumber} with page size {PageSize}", materials.Count, normalizedPageNumber, normalizedPageSize);
         return materials;
@@ -40,9 +24,7 @@ public class RawMaterialService(
 
     public async Task<RawMaterialDTO?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        var material = await dbContext.RawMaterials
-            .AsNoTracking()
-            .SingleOrDefaultAsync(item => item.id == id, cancellationToken);
+        var material = await repository.GetByIdAsync(id, cancellationToken);
 
         logger.LogInformation("Raw material lookup completed for raw material {RawMaterialId}. Found: {Found}", id, material is not null);
         return material is null ? null : ToDTO(material);
@@ -64,13 +46,13 @@ public class RawMaterialService(
             create_date = DateTime.UtcNow
         };
 
-        await dbContext.RawMaterials.AddAsync(entity, cancellationToken);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await repository.AddAsync(entity, cancellationToken);
+        await repository.SaveChangesAsync(cancellationToken);
 
         if (string.IsNullOrWhiteSpace(rawMaterial.material_code))
         {
             entity.material_code = RawMaterialCodeGenerator.Generate(entity.id);
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await repository.SaveChangesAsync(cancellationToken);
         }
 
         logger.LogInformation("Created raw material {RawMaterialId} with code {MaterialCode}", entity.id, entity.material_code);
@@ -79,7 +61,7 @@ public class RawMaterialService(
 
     public async Task<bool> UpdateAsync(int id, UpdateRawMaterialDTO rawMaterial, CancellationToken cancellationToken = default)
     {
-        var existingMaterial = await dbContext.RawMaterials.SingleOrDefaultAsync(item => item.id == id, cancellationToken);
+        var existingMaterial = await repository.FindTrackedAsync(id, cancellationToken);
 
         if (existingMaterial is null)
         {
@@ -96,14 +78,14 @@ public class RawMaterialService(
         existingMaterial.is_active = rawMaterial.is_active;
         existingMaterial.update_date = DateTime.UtcNow;
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await repository.SaveChangesAsync(cancellationToken);
         logger.LogInformation("Updated raw material {RawMaterialId}", id);
         return true;
     }
 
     public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
-        var material = await dbContext.RawMaterials.SingleOrDefaultAsync(item => item.id == id, cancellationToken);
+        var material = await repository.FindTrackedAsync(id, cancellationToken);
 
         if (material is null)
         {
@@ -111,8 +93,8 @@ public class RawMaterialService(
             return false;
         }
 
-        dbContext.RawMaterials.Remove(material);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        repository.Remove(material);
+        await repository.SaveChangesAsync(cancellationToken);
         logger.LogInformation("Deleted raw material {RawMaterialId}", id);
         return true;
     }
