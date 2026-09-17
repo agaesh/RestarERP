@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using RestarProduct.Data;
 using RestarProduct.DTOs;
+using RestarProduct.Repositories;
 using RestarProduct.Services;
 
 namespace ProductService.Api.Tests;
@@ -25,7 +26,9 @@ public sealed class RawMaterialServiceTests : IDisposable
         dbContext = new ProductDbContext(options);
         dbContext.Database.EnsureCreated();
 
-        rawMaterialService = new RawMaterialService(dbContext, NullLogger<RawMaterialService>.Instance);
+        rawMaterialService = new RawMaterialService(
+            new RawMaterialRepository(dbContext),
+            NullLogger<RawMaterialService>.Instance);
     }
 
     [Fact]
@@ -37,7 +40,7 @@ public sealed class RawMaterialServiceTests : IDisposable
 
         var result = await rawMaterialService.GetAllAsync(2, 2);
 
-        Assert.Equal(2, result.Count);
+        Assert.Single(result);
         Assert.Equal(["Cherry"], result.Select(material => material.material_name));
     }
 
