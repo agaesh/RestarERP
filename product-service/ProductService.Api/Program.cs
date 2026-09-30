@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using RestarProduct.Data;
 using RestarProduct.Interfaces;
@@ -24,7 +25,28 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        var exceptionFeature = context.Features.Get<IExceptionHandlerFeature>();
+        var exception = exceptionFeature?.Error;
 
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+        logger.LogError(exception,
+            "Error occurred during {Method} {Path}",
+            context.Request.Method,
+            context.Request.Path);
+
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        await context.Response.WriteAsJsonAsync(new
+        {
+            Status = StatusCodes.Status500InternalServerError,
+            Title = "Unexpected error",
+            Detail = exception?.Message
+        });
+    });
+});
 app.UseHttpsRedirection();
 app.MapControllers();
 app.Run();
