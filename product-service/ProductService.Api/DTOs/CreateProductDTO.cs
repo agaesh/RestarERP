@@ -5,6 +5,10 @@ namespace RestarProduct.DTOs;
 
 public class CreateProductDTO
 {
+	[Required(ErrorMessage = "Product code is required.")]
+	[StringLength(50, ErrorMessage = "Product code cannot exceed 50 characters.")]
+	public string product_code { get; set; } = string.Empty;
+
 	[Required(ErrorMessage = "Product name is required.")]
 	[StringLength(200, MinimumLength = 2, ErrorMessage = "Product name must be between 2 and 200 characters.")]
 	public string product_name { get; set; } = string.Empty;
