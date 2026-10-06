@@ -1,5 +1,4 @@
 using RestarProduct.DTOs;
-using RestarProduct.Helpers;
 using RestarProduct.Interfaces;
 using RestarProduct.Models;
 
@@ -9,6 +8,7 @@ public class RawMaterialService(
     IRawMaterialRepository repository,
     ILogger<RawMaterialService> logger) : IRawMaterialService
 {
+
     public async Task<IReadOnlyList<RawMaterialDTO>> GetAllAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default)
     {
         var normalizedPageNumber = pageNumber <= 0 ? 1 : pageNumber;
@@ -32,13 +32,11 @@ public class RawMaterialService(
 
     public async Task<RawMaterialDTO> CreateAsync(CreateRawMaterialDTO rawMaterial, CancellationToken cancellationToken = default)
     {
-        Validate(rawMaterial.material_code, rawMaterial.material_name, rawMaterial.uom, allowGeneratedCode: true);
+        Validate(rawMaterial.material_code, rawMaterial.material_name, rawMaterial.uom);
 
         var entity = new RawMaterial
         {
-            material_code = string.IsNullOrWhiteSpace(rawMaterial.material_code)
-                ? $"RM-PENDING-{Guid.NewGuid():N}"
-                : rawMaterial.material_code.Trim(),
+            material_code = rawMaterial.material_code.Trim(),
             material_name = rawMaterial.material_name.Trim(),
             material_desc = string.IsNullOrWhiteSpace(rawMaterial.material_desc) ? null : rawMaterial.material_desc.Trim(),
             uom = string.IsNullOrWhiteSpace(rawMaterial.uom) ? null : rawMaterial.uom.Trim(),
@@ -48,12 +46,6 @@ public class RawMaterialService(
 
         await repository.AddAsync(entity, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
-
-        if (string.IsNullOrWhiteSpace(rawMaterial.material_code))
-        {
-            entity.material_code = RawMaterialCodeGenerator.Generate(entity.id);
-            await repository.SaveChangesAsync(cancellationToken);
-        }
 
         logger.LogInformation("Created raw material {RawMaterialId} with code {MaterialCode}", entity.id, entity.material_code);
         return ToDTO(entity);
@@ -99,9 +91,9 @@ public class RawMaterialService(
         return true;
     }
 
-    private static void Validate(string? materialCode, string? materialName, string? uom, bool allowGeneratedCode = false)
+    private static void Validate(string? materialCode, string? materialName, string? uom)
     {
-        if (!allowGeneratedCode && string.IsNullOrWhiteSpace(materialCode))
+        if (string.IsNullOrWhiteSpace(materialCode))
         {
             throw new ArgumentException("Material code is required.", nameof(materialCode));
         }

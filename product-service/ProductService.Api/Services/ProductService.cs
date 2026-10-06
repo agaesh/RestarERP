@@ -1,5 +1,4 @@
 using RestarProduct.DTOs;
-using RestarProduct.Helpers;
 using RestarProduct.Interfaces;
 using RestarProduct.Models;
 using RestarProduct.Repositories;
@@ -32,11 +31,14 @@ public class ProductService(
         CreateProductDTO product,
         CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(product.product_code))
+        {
+            throw new ArgumentException("Product code is required.", nameof(product));
+        }
 
-        var generatedProductCode = ProductCodeGenerator.Generate(product.product_name);
         var entity = new Product
         {
-            product_code = generatedProductCode,
+            product_code = product.product_code.Trim(),
             product_name = product.product_name,
             description = product.description,
             image_url = product.image_url,
