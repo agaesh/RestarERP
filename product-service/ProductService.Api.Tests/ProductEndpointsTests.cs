@@ -39,6 +39,7 @@ public sealed class ProductEndpointsTests : IDisposable
     {
         var response = await client.PostAsJsonAsync("/products", new CreateProductDTO
         {
+            product_code = "PROD-API-001",
             product_name = "Endpoint Coffee",
             product_type = ProductType.Beverage,
             tax_id = 4
@@ -66,6 +67,7 @@ public sealed class ProductEndpointsTests : IDisposable
     {
         var createdResponse = await client.PostAsJsonAsync("/products", new CreateProductDTO
         {
+            product_code = "PROD-API-002",
             product_name = "Before update"
         });
         var createdProduct = await createdResponse.Content.ReadFromJsonAsync<ProductDTO>();
@@ -91,6 +93,7 @@ public sealed class ProductEndpointsTests : IDisposable
     {
         var createdResponse = await client.PostAsJsonAsync("/products", new CreateProductDTO
         {
+            product_code = "PROD-API-003",
             product_name = "To delete"
         });
         var createdProduct = await createdResponse.Content.ReadFromJsonAsync<ProductDTO>();
@@ -100,6 +103,18 @@ public sealed class ProductEndpointsTests : IDisposable
 
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateProductWithoutProductCode_ShouldPrevent()
+    {
+        var response = await client.PostAsJsonAsync("/products", new CreateProductDTO
+        {
+            product_name = "No code product",
+            product_type = ProductType.Beverage
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     public void Dispose()

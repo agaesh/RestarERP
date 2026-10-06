@@ -39,6 +39,7 @@ public sealed class ProductServiceTests : IDisposable
     {
         var result = await productService.CreateAsync(new CreateProductDTO
         {
+            product_code = "PROD-001",
             product_name = "Coffee",
             product_type = ProductType.Beverage,
             tax_id = 7
@@ -55,8 +56,8 @@ public sealed class ProductServiceTests : IDisposable
     [Fact]
     public async Task GetAllAsync_ReturnsProductsOrderedByName()
     {
-        await productService.CreateAsync(new CreateProductDTO { product_name = "Zest" });
-        await productService.CreateAsync(new CreateProductDTO { product_name = "Apple" });
+        await productService.CreateAsync(new CreateProductDTO { product_code = "PROD-010", product_name = "Zest" });
+        await productService.CreateAsync(new CreateProductDTO { product_code = "PROD-011", product_name = "Apple" });
 
         var products = await productService.GetAllAsync();
 
@@ -68,6 +69,7 @@ public sealed class ProductServiceTests : IDisposable
     {
         var createdProduct = await productService.CreateAsync(new CreateProductDTO
         {
+            product_code = "PROD-020",
             product_name = "Tea",
             tax_id = 3
         });
@@ -84,6 +86,7 @@ public sealed class ProductServiceTests : IDisposable
     {
         var createdProduct = await productService.CreateAsync(new CreateProductDTO
         {
+            product_code = "PROD-030",
             product_name = "Old name",
             tax_id = 1
         });
@@ -106,10 +109,23 @@ public sealed class ProductServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateProductWithoutProductCode_shouldPrevent()
+    {
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() => productService.CreateAsync(new CreateProductDTO
+        {
+            product_name = "Missing code",
+            product_type = ProductType.Beverage
+        }));
+
+        Assert.Contains("Product code is required", exception.Message);
+    }
+
+    [Fact]
     public async Task DeleteAsync_RemovesProductAndReturnsFalseForMissingProduct()
     {
         var createdProduct = await productService.CreateAsync(new CreateProductDTO
         {
+            product_code = "PROD-040",
             product_name = "To delete"
         });
 
