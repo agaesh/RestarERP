@@ -26,8 +26,10 @@ public sealed class RawMaterialServiceTests : IDisposable
         dbContext = new ProductDbContext(options);
         dbContext.Database.EnsureCreated();
 
+        var repository = new RawMaterialRepository(dbContext);
+
         rawMaterialService = new RawMaterialService(
-            new RawMaterialRepository(dbContext),
+            repository,
             NullLogger<RawMaterialService>.Instance);
     }
 
