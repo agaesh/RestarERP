@@ -27,6 +27,16 @@ public sealed class UOMRepository(ProductDbContext dbContext) : IUOMRepository
         return dbContext.UOMs.SingleOrDefaultAsync(uom => uom.Id == id, cancellationToken);
     }
 
+    public Task<bool> CodeExistsAsync(
+        string code,
+        int? excludingId = null,
+        CancellationToken cancellationToken = default)
+    {
+        return dbContext.UOMs.AnyAsync(
+            uom => uom.Code.ToUpper() == code && (!excludingId.HasValue || uom.Id != excludingId.Value),
+            cancellationToken);
+    }
+
     public async Task<UOM> AddAsync(UOM uom, CancellationToken cancellationToken = default)
     {
         await dbContext.UOMs.AddAsync(uom, cancellationToken);

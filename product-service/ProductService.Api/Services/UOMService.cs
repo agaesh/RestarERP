@@ -1,4 +1,5 @@
 using RestarProduct.DTOs;
+using RestarProduct.Exceptions;
 using RestarProduct.Interfaces;
 using RestarProduct.Models;
 
@@ -23,9 +24,15 @@ public sealed class UOMService(
 
     public async Task<UOMDTO> CreateAsync(CreateUOMDTO request, CancellationToken cancellationToken = default)
     {
+        var code = NormalizeCode(request.uom_code);
+        if (await repository.CodeExistsAsync(code, cancellationToken: cancellationToken))
+        {
+            throw new UOMCodeAlreadyExistsException(code);
+        }
+
         var uom = new UOM
         {
-            Code = request.uom_code.Trim(),
+            Code = code,
             Name = request.uom_name.Trim(),
             Description = NormalizeDescription(request.description),
             IsActive = request.is_active,
@@ -48,7 +55,13 @@ public sealed class UOMService(
             return false;
         }
 
-        uom.Code = request.uom_code.Trim();
+        var code = NormalizeCode(request.uom_code);
+        if (await repository.CodeExistsAsync(code, id, cancellationToken))
+        {
+            throw new UOMCodeAlreadyExistsException(code);
+        }
+
+        uom.Code = code;
         uom.Name = request.uom_name.Trim();
         uom.Description = NormalizeDescription(request.description);
         uom.IsActive = request.is_active;
@@ -76,6 +89,8 @@ public sealed class UOMService(
 
     private static string? NormalizeDescription(string? description) =>
         string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+
+    private static string NormalizeCode(string code) => code.Trim().ToUpperInvariant();
 
     private static UOMDTO ToDTO(UOM uom) => new(
         uom.Id,
