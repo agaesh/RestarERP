@@ -166,6 +166,9 @@ namespace ProductService.Api.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Code")
+                        .IsUnique();
+
                     b.ToTable("UOMSetup");
                 });
 #pragma warning restore 612, 618
