@@ -9,10 +9,23 @@ public sealed class UOMService(
     IUOMRepository repository,
     ILogger<UOMService> logger) : IUOMService
 {
-    public async Task<IReadOnlyList<UOMDTO>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<UOMDTO>> GetAllAsync(
+        int pageNumber,
+        int pageSize,
+        CancellationToken cancellationToken = default)
     {
-        var uoms = (await repository.GetAllAsync(cancellationToken)).Select(ToDTO).ToList();
-        logger.LogInformation("Retrieved {UOMCount} units of measure", uoms.Count);
+        var normalizedPageNumber = pageNumber <= 0 ? 1 : pageNumber;
+        var normalizedPageSize = pageSize <= 0 ? 10 : pageSize;
+
+        var uoms = (await repository.GetPagedAsync(normalizedPageNumber, normalizedPageSize, cancellationToken))
+            .Select(ToDTO)
+            .ToList();
+
+        logger.LogInformation(
+            "Retrieved {UOMCount} units of measure for page {PageNumber} with page size {PageSize}",
+            uoms.Count,
+            normalizedPageNumber,
+            normalizedPageSize);
         return uoms;
     }
 

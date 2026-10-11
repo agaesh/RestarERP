@@ -4,7 +4,10 @@ namespace RestarProduct.Interfaces;
 
 public interface IUOMService
 {
-    Task<IReadOnlyList<UOMDTO>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<UOMDTO>> GetAllAsync(
+        int pageNumber,
+        int pageSize,
+        CancellationToken cancellationToken = default);
 
     Task<UOMDTO?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
 

@@ -7,6 +7,19 @@ namespace RestarProduct.Repositories;
 
 public sealed class UOMRepository(ProductDbContext dbContext) : IUOMRepository
 {
+    public async Task<IReadOnlyList<UOM>> GetPagedAsync(
+        int pageNumber,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        return await dbContext.UOMs
+            .AsNoTracking()
+            .OrderBy(uom => uom.Code)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<UOM>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await dbContext.UOMs

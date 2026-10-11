@@ -4,6 +4,11 @@ namespace RestarProduct.Interfaces;
 
 public interface IUOMRepository
 {
+    Task<IReadOnlyList<UOM>> GetPagedAsync(
+        int pageNumber,
+        int pageSize,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<UOM>> GetAllAsync(CancellationToken cancellationToken = default);
 
     Task<UOM?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
