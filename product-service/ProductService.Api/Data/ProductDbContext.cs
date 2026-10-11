@@ -9,6 +9,7 @@ public class ProductDbContext(DbContextOptions<ProductDbContext> options) : DbCo
     public DbSet<Product> Products => Set<Product>();
     public DbSet<RawMaterial> RawMaterials => Set<RawMaterial>();
 
+    public DbSet<UOM> UOMs => Set<UOM>();
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Product>()
