@@ -11,7 +11,7 @@ public sealed class UOMRepository(ProductDbContext dbContext) : IUOMRepository
     {
         return await dbContext.UOMs
             .AsNoTracking()
-            .OrderBy(uom => uom.uom_code)
+            .OrderBy(uom => uom.Code)
             .ToListAsync(cancellationToken);
     }
 
@@ -19,12 +19,12 @@ public sealed class UOMRepository(ProductDbContext dbContext) : IUOMRepository
     {
         return dbContext.UOMs
             .AsNoTracking()
-            .SingleOrDefaultAsync(uom => uom.id == id, cancellationToken);
+            .SingleOrDefaultAsync(uom => uom.Id == id, cancellationToken);
     }
 
     public Task<UOM?> FindTrackedAsync(int id, CancellationToken cancellationToken = default)
     {
-        return dbContext.UOMs.SingleOrDefaultAsync(uom => uom.id == id, cancellationToken);
+        return dbContext.UOMs.SingleOrDefaultAsync(uom => uom.Id == id, cancellationToken);
     }
 
     public async Task<UOM> AddAsync(UOM uom, CancellationToken cancellationToken = default)
