@@ -3,30 +3,36 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace RestarProduct.Models;
 
-[Table("UOMs")]
+[Table("UOMSetup")]
 public class UOM
 {
     [Key]
-    public int id { get; set; }
+    [Column("id")]
+    public int Id { get; set; }
 
     [Required]
     [StringLength(20)]
-    public string uom_code { get; set; } = string.Empty;
+    [Column("code")]
+    public string Code { get; set; } = string.Empty;
 
     [Required]
     [StringLength(100)]
-    public string uom_name { get; set; } = string.Empty;
+    [Column("name")]
+    public string Name { get; set; } = string.Empty;
 
     [StringLength(500)]
-    public string? description { get; set; }
+    [Column("description")]
+    public string? Description { get; set; }
 
-    public bool is_active { get; set; } = true;
+    [Column("is_active")]
+    public bool IsActive { get; set; } = true;
 
-    public bool is_delete {get; set;} = false;
+    [Column("is_delete")]
+    public bool IsDelete { get; set; } = false;
 
-    [Column(TypeName = "datetime2")]
-    public DateTime create_date { get; set; } = DateTime.UtcNow;
+    [Column("create_date", TypeName = "datetime2")]
+    public DateTime CreateDate { get; set; } = DateTime.UtcNow;
 
-    [Column(TypeName = "datetime2")]
-    public DateTime? update_date { get; set; }
+    [Column("update_date", TypeName = "datetime2")]
+    public DateTime? UpdateDate { get; set; }
 }
