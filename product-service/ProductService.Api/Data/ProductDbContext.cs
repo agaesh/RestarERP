@@ -23,6 +23,10 @@ public class ProductDbContext(DbContextOptions<ProductDbContext> options) : DbCo
         modelBuilder.Entity<RawMaterial>()
             .HasIndex(material => new { material.is_active, material.material_name });
 
+        modelBuilder.Entity<UOM>()
+            .HasIndex(uom => uom.Code)
+            .IsUnique();
+
         modelBuilder.Entity<RawMaterial>()
             .Property(material => material.material_code)
             .HasMaxLength(50);
