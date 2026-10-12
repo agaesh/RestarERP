@@ -94,9 +94,11 @@ public sealed class UOMService(
             return false;
         }
 
-        repository.Remove(uom);
+        uom.IsDelete = true;
+        uom.UpdateDate = DateTime.UtcNow;
+
         await repository.SaveChangesAsync(cancellationToken);
-        logger.LogInformation("Deleted unit of measure {UOMId}", id);
+        logger.LogInformation("Soft-deleted unit of measure {UOMId}", id);
         return true;
     }
 

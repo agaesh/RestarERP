@@ -14,6 +14,7 @@ public sealed class UOMRepository(ProductDbContext dbContext) : IUOMRepository
     {
         return await dbContext.UOMs
             .AsNoTracking()
+            .Where(uom => !uom.IsDelete)
             .OrderBy(uom => uom.Code)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
@@ -24,6 +25,7 @@ public sealed class UOMRepository(ProductDbContext dbContext) : IUOMRepository
     {
         return await dbContext.UOMs
             .AsNoTracking()
+            .Where(uom => !uom.IsDelete)
             .OrderBy(uom => uom.Code)
             .ToListAsync(cancellationToken);
     }
@@ -32,12 +34,13 @@ public sealed class UOMRepository(ProductDbContext dbContext) : IUOMRepository
     {
         return dbContext.UOMs
             .AsNoTracking()
-            .SingleOrDefaultAsync(uom => uom.Id == id, cancellationToken);
+            .SingleOrDefaultAsync(uom => uom.Id == id && !uom.IsDelete, cancellationToken);
     }
 
     public Task<UOM?> FindTrackedAsync(int id, CancellationToken cancellationToken = default)
     {
-        return dbContext.UOMs.SingleOrDefaultAsync(uom => uom.Id == id, cancellationToken);
+        return dbContext.UOMs
+            .SingleOrDefaultAsync(uom => uom.Id == id && !uom.IsDelete, cancellationToken);
     }
 
     public Task<bool> CodeExistsAsync(
@@ -59,10 +62,5 @@ public sealed class UOMRepository(ProductDbContext dbContext) : IUOMRepository
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         return dbContext.SaveChangesAsync(cancellationToken);
-    }
-
-    public void Remove(UOM uom)
-    {
-        dbContext.UOMs.Remove(uom);
     }
 }

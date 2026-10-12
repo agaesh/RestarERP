@@ -20,6 +20,4 @@ public interface IUOMRepository
     Task<UOM> AddAsync(UOM uom, CancellationToken cancellationToken = default);
 
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
-
-    void Remove(UOM uom);
 }

@@ -123,16 +123,21 @@ public sealed class UOMServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task DeleteAsync_DeletesUOMAndReturnsFalseWhenMissing()
+    public async Task DeleteAsync_SoftDeletesUOMAndUpdatesTimestamp()
     {
         var created = await service.CreateAsync(CreateRequest("KG", "Kilogram"));
 
         var deleted = await service.DeleteAsync(created.id);
         var missing = await service.DeleteAsync(created.id);
+        var persisted = await dbContext.UOMs.SingleAsync();
 
         Assert.True(deleted);
         Assert.False(missing);
+        Assert.True(persisted.IsDelete);
+        Assert.NotNull(persisted.UpdateDate);
+        Assert.True(persisted.UpdateDate >= created.create_date.UtcDateTime);
         Assert.Empty(await service.GetAllAsync(1, 10));
+        Assert.Null(await service.GetByIdAsync(created.id));
     }
 
     public void Dispose()
