@@ -1,3 +1,5 @@
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using RestarProduct.DTOs;
 using RestarProduct.Exceptions;
 using RestarProduct.Interfaces;
@@ -53,7 +55,19 @@ public sealed class UOMService(
         };
 
         await repository.AddAsync(uom, cancellationToken);
-        await repository.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await repository.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (IsUOMCodeUniqueConstraintViolation(ex))
+        {
+            logger.LogWarning(
+                ex,
+                "UOM creation for code {UOMCode} was rejected by the unique code constraint",
+                code);
+            throw new UOMCodeAlreadyExistsException(code);
+        }
+
         logger.LogInformation("Created unit of measure {UOMId} with code {UOMCode}", uom.Id, uom.Code);
         return ToDTO(uom);
     }
@@ -80,7 +94,20 @@ public sealed class UOMService(
         uom.IsActive = request.is_active;
         uom.UpdateDate = DateTime.UtcNow;
 
-        await repository.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await repository.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (IsUOMCodeUniqueConstraintViolation(ex))
+        {
+            logger.LogWarning(
+                ex,
+                "UOM update for {UOMId} with code {UOMCode} was rejected by the unique code constraint",
+                id,
+                code);
+            throw new UOMCodeAlreadyExistsException(code);
+        }
+
         logger.LogInformation("Updated unit of measure {UOMId}", id);
         return true;
     }
@@ -106,6 +133,13 @@ public sealed class UOMService(
         string.IsNullOrWhiteSpace(description) ? null : description.Trim();
 
     private static string NormalizeCode(string code) => code.Trim().ToUpperInvariant();
+
+    private static bool IsUOMCodeUniqueConstraintViolation(DbUpdateException exception)
+    {
+        return exception.GetBaseException() is SqlException sqlException
+            && sqlException.Number is 2601 or 2627
+            && sqlException.Message.Contains("IX_UOMSetup_code", StringComparison.OrdinalIgnoreCase);
+    }
 
     private static UOMDTO ToDTO(UOM uom) => new(
         uom.Id,
