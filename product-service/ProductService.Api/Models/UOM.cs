@@ -11,16 +11,13 @@ public class UOM
     public int Id { get; set; }
 
     [Required]
-    [StringLength(20)]
     [Column("code")]
     public string Code { get; set; } = string.Empty;
 
     [Required]
-    [StringLength(100)]
     [Column("name")]
     public string Name { get; set; } = string.Empty;
 
-    [StringLength(500)]
     [Column("description")]
     public string? Description { get; set; }
 

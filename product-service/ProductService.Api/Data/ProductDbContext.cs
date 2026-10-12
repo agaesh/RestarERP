@@ -27,6 +27,18 @@ public class ProductDbContext(DbContextOptions<ProductDbContext> options) : DbCo
             .HasIndex(uom => uom.Code)
             .IsUnique();
 
+        modelBuilder.Entity<UOM>()
+            .Property(uom => uom.Code)
+            .HasMaxLength(20);
+
+        modelBuilder.Entity<UOM>()
+            .Property(uom => uom.Name)
+            .HasMaxLength(100);
+
+        modelBuilder.Entity<UOM>()
+            .Property(uom => uom.Description)
+            .HasMaxLength(500);
+
         modelBuilder.Entity<RawMaterial>()
             .Property(material => material.material_code)
             .HasMaxLength(50);
