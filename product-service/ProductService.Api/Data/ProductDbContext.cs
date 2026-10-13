@@ -9,6 +9,7 @@ public class ProductDbContext(DbContextOptions<ProductDbContext> options) : DbCo
     public DbSet<Product> Products => Set<Product>();
     public DbSet<RawMaterial> RawMaterials => Set<RawMaterial>();
 
+    public DbSet<UOM> UOMs => Set<UOM>();
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Product>()
@@ -21,6 +22,22 @@ public class ProductDbContext(DbContextOptions<ProductDbContext> options) : DbCo
 
         modelBuilder.Entity<RawMaterial>()
             .HasIndex(material => new { material.is_active, material.material_name });
+
+        modelBuilder.Entity<UOM>()
+            .HasIndex(uom => uom.Code)
+            .IsUnique();
+
+        modelBuilder.Entity<UOM>()
+            .Property(uom => uom.Code)
+            .HasMaxLength(20);
+
+        modelBuilder.Entity<UOM>()
+            .Property(uom => uom.Name)
+            .HasMaxLength(100);
+
+        modelBuilder.Entity<UOM>()
+            .Property(uom => uom.Description)
+            .HasMaxLength(500);
 
         modelBuilder.Entity<RawMaterial>()
             .Property(material => material.material_code)

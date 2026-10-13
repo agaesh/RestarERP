@@ -17,6 +17,8 @@ builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductService, RestarProduct.Services.ProductService>();
 builder.Services.AddScoped<IRawMaterialRepository, RawMaterialRepository>();
 builder.Services.AddScoped<IRawMaterialService, RestarProduct.Services.RawMaterialService>();
+builder.Services.AddScoped<IUOMRepository, UOMRepository>();
+builder.Services.AddScoped<IUOMService, UOMService>();
 
 var app = builder.Build();
 
