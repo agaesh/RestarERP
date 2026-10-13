@@ -51,12 +51,32 @@ public sealed class UOMEndpointsTests : IDisposable
         Assert.Equal("B", uom.uom_code);
     }
 
+    //Test Retrieving non-existent record
     [Fact]
     public async Task GetUOM_WhenMissing_ReturnsNotFound()
     {
         var response = await client.GetAsync("/uoms/99999");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+   
+    // Avoid deleted code included in GET Request.
+    [Fact]
+    public async Task GetUOMs_ExcludesSoftDeletedUOM()
+    {
+        var deletedResponse = await client.PostAsJsonAsync("/uoms", CreateRequest("KG", "Kilogram"));
+        var deletedUOM = await deletedResponse.Content.ReadFromJsonAsync<UOMDTO>();
+        await client.PostAsJsonAsync("/uoms", CreateRequest("G", "Gram"));
+
+        var deleteResponse = await client.DeleteAsync($"/uoms/{deletedUOM!.id}");
+        var listResponse = await client.GetAsync("/uoms");
+
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, listResponse.StatusCode);
+
+        var listedUOMs = await listResponse.Content.ReadFromJsonAsync<List<UOMDTO>>();
+        var listedUOM = Assert.Single(listedUOMs!);
+        Assert.Equal("G", listedUOM.uom_code);
     }
 
     [Fact]
@@ -80,7 +100,7 @@ public sealed class UOMEndpointsTests : IDisposable
         Assert.NotEqual(default, uom.create_date);
         Assert.Null(uom.update_date);
     }
-
+    // create duplicate records
     [Fact]
     public async Task PostUOM_WhenCodeAlreadyExists_ReturnsConflict()
     {
@@ -92,6 +112,7 @@ public sealed class UOMEndpointsTests : IDisposable
         Assert.Single(await client.GetFromJsonAsync<List<UOMDTO>>("/uoms") ?? []);
     }
 
+    // create uom when then name is missing, should fail
     [Fact]
     public async Task PostUOM_WhenRequiredNameIsMissing_ReturnsBadRequestWithValidationText()
     {
@@ -113,7 +134,10 @@ public sealed class UOMEndpointsTests : IDisposable
                 .Select(message => message.GetString()));
     }
 
+     //updateing uom and return no content
     [Fact]
+
+   
     public async Task PutUOM_UpdatesAndReturnsNoContent()
     {
         var createdResponse = await client.PostAsJsonAsync("/uoms", CreateRequest("KG", "Kilogram"));
@@ -140,6 +164,7 @@ public sealed class UOMEndpointsTests : IDisposable
         Assert.NotNull(updated.update_date);
     }
 
+    //updateing uom with another uom's code should return 409 conflict
     [Fact]
     public async Task PutUOM_WhenCodeBelongsToAnotherUOM_ReturnsConflict()
     {
@@ -159,6 +184,7 @@ public sealed class UOMEndpointsTests : IDisposable
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
     }
 
+    //posting record when uom code is missing , should return badrequest
     [Fact]
     public async Task PutUOM_WhenRequiredCodeIsMissing_ReturnsBadRequestWithValidationText()
     {
@@ -182,6 +208,7 @@ public sealed class UOMEndpointsTests : IDisposable
                 .Select(message => message.GetString()));
     }
 
+    //update uom when its non exist
     [Fact]
     public async Task PutUOM_WhenMissing_ReturnsNotFound()
     {
@@ -190,6 +217,7 @@ public sealed class UOMEndpointsTests : IDisposable
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    // Soft deletion should hide the UOM from reads.
     [Fact]
     public async Task DeleteUOM_ReturnsNoContentAndThenNotFound()
     {
@@ -202,7 +230,7 @@ public sealed class UOMEndpointsTests : IDisposable
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
     }
-
+     
     public void Dispose()
     {
         client.Dispose();
