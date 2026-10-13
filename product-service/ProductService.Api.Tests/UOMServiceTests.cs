@@ -30,6 +30,7 @@ public sealed class UOMServiceTests : IDisposable
             NullLogger<UOMService>.Instance);
     }
 
+    // Creates a UOM with trimmed values and a creation timestamp.
     [Fact]
     public async Task CreateAsync_TrimsValuesAndSetsCreationTimestamp()
     {
@@ -53,6 +54,7 @@ public sealed class UOMServiceTests : IDisposable
         Assert.Null(created.update_date);
     }
 
+    // Returns UOMs ordered by their codes.
     [Fact]
     public async Task GetAllAsync_ReturnsUOMsInCodeOrder()
     {
@@ -64,6 +66,7 @@ public sealed class UOMServiceTests : IDisposable
         Assert.Equal(["G", "ML"], result.Select(uom => uom.uom_code));
     }
 
+    // Returns only the requested page of UOMs.
     [Fact]
     public async Task GetAllAsync_ReturnsRequestedPage()
     {
@@ -76,6 +79,7 @@ public sealed class UOMServiceTests : IDisposable
         Assert.Equal("B", Assert.Single(result).uom_code);
     }
 
+    // Returns the requested UOM or null when its ID does not exist.
     [Fact]
     public async Task GetByIdAsync_ReturnsUOMOrNullWhenMissing()
     {
@@ -88,6 +92,25 @@ public sealed class UOMServiceTests : IDisposable
         Assert.Null(missing);
     }
 
+    // Returns active UOMs but does not return a soft-deleted UOM.
+    [Fact]
+    public async Task GetByIdAsync_ReturnsActiveUOMAndNullForDeletedUOM()
+    {
+        var created = await service.CreateAsync(CreateRequest("KG", "Kilogram"));
+
+        var activeUOM = await service.GetByIdAsync(created.id);
+        Assert.NotNull(activeUOM);
+        Assert.Equal(created.id, activeUOM!.id);
+        Assert.Equal("KG", activeUOM.uom_code);
+
+        var deleted = await service.DeleteAsync(created.id);
+        var deletedUOM = await service.GetByIdAsync(created.id);
+
+        Assert.True(deleted);
+        Assert.Null(deletedUOM);
+    }
+
+    // Updates the UOM fields and sets the update timestamp.
     [Fact]
     public async Task UpdateAsync_UpdatesUOMAndSetsUpdateTimestamp()
     {
@@ -114,6 +137,7 @@ public sealed class UOMServiceTests : IDisposable
         Assert.True(result.update_date >= result.create_date);
     }
 
+    // Returns false when attempting to update a UOM that does not exist.
     [Fact]
     public async Task UpdateAsync_ReturnsFalseWhenUOMDoesNotExist()
     {
@@ -122,6 +146,7 @@ public sealed class UOMServiceTests : IDisposable
         Assert.False(updated);
     }
 
+    // Soft-deletes the UOM, updates its timestamp, and hides it from reads.
     [Fact]
     public async Task DeleteAsync_SoftDeletesUOMAndUpdatesTimestamp()
     {
