@@ -22,6 +22,55 @@ namespace ProductService.Api.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("RestarProduct.Models.MultiUOM", b =>
+                {
+                    b.Property<int>("id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int>("altUOMId")
+                        .HasColumnType("int")
+                        .HasColumnName("alt_uom_id");
+
+                    b.Property<int>("baseUOMId")
+                        .HasColumnType("int")
+                        .HasColumnName("base_uom_id");
+
+                    b.Property<decimal?>("conversionFactor")
+                        .HasColumnType("decimal(10, 6)")
+                        .HasColumnName("conversion_factor");
+
+                    b.Property<string>("refId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("ref_id");
+
+                    b.Property<int>("refType")
+                        .HasColumnType("int");
+
+                    b.HasKey("id");
+
+                    b.HasIndex("altUOMId");
+
+                    b.HasIndex("baseUOMId");
+
+                    b.HasIndex("refType", "refId", "altUOMId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_MultiUOM_refType_refId_altUOMId");
+
+                    b.ToTable("MultiUOMs");
+                });
+
             modelBuilder.Entity("RestarProduct.Models.Product", b =>
                 {
                     b.Property<int>("id")
@@ -170,6 +219,27 @@ namespace ProductService.Api.Migrations
                         .IsUnique();
 
                     b.ToTable("UOMSetup");
+                });
+
+            modelBuilder.Entity("RestarProduct.Models.MultiUOM", b =>
+                {
+                    b.HasOne("RestarProduct.Models.UOM", "altUOM")
+                        .WithMany()
+                        .HasForeignKey("altUOMId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("FK_MultiUOM_UOMSetup_alt_uom_id");
+
+                    b.HasOne("RestarProduct.Models.UOM", "baseUOM")
+                        .WithMany()
+                        .HasForeignKey("baseUOMId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("FK_MultiUOM_UOMSetup_base_uom_id");
+
+                    b.Navigation("altUOM");
+
+                    b.Navigation("baseUOM");
                 });
 #pragma warning restore 612, 618
         }
