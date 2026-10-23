@@ -11,8 +11,9 @@ public sealed class MultiUOMService(
     IMultiUOMRepository repository,
     ILogger<MultiUOMService> logger) : IMultiUOMService
 {
-    //to Understand: This method retrieves a list of MultiUOMDTO objects associated with a specific reference type and reference ID.
-    // It first normalizes the reference ID, checks if the reference exists, and then fetches the corresponding MultiUOM records from the repository. The results are logged and returned as a list of DTOs.
+    /// <summary>
+    /// Retrieves the alternate UOMs for an owner, or <see langword="null"/> if the owner does not exist.
+    /// </summary>
     public async Task<IReadOnlyList<MultiUOMDTO>?> GetByReferenceAsync(
         MultiUOMRefType refType,
         int referenceId,
@@ -44,7 +45,9 @@ public sealed class MultiUOMService(
         return multiUOMs;
     }
 
-    //to Understand: This method retrieves a specific MultiUOMDTO by its ID, reference type, and reference ID. It normalizes the reference ID and fetches the corresponding MultiUOM record from the repository. If found, it converts the record to a DTO and returns it; otherwise, it returns null./
+    /// <summary>
+    /// Retrieves one alternate UOM by record ID and owner, or <see langword="null"/> if no matching record exists.
+    /// </summary>
     public async Task<MultiUOMDTO?> GetByIdAsync(
         int id,
         MultiUOMRefType refType,
@@ -59,6 +62,9 @@ public sealed class MultiUOMService(
         return multiUOM is null ? null : ToDTO(multiUOM);
     }
 
+    /// <summary>
+    /// Validates and creates an alternate UOM conversion for the specified owner.
+    /// </summary>
     public async Task<MultiUOMDTO> CreateAsync(
         MultiUOMRefType refType,
         int referenceId,
@@ -110,6 +116,9 @@ public sealed class MultiUOMService(
         return ToDTO(multiUOM);
     }
 
+    /// <summary>
+    /// Validates and updates an existing alternate UOM conversion for the specified owner.
+    /// </summary>
     public async Task<bool> UpdateAsync(
         int id,
         MultiUOMRefType refType,
@@ -151,6 +160,9 @@ public sealed class MultiUOMService(
         return true;
     }
     
+    /// <summary>
+    /// Deletes an alternate UOM conversion and returns whether a matching record was found.
+    /// </summary>
     public async Task<bool> DeleteAsync(
         int id,
         MultiUOMRefType refType,
@@ -174,10 +186,14 @@ public sealed class MultiUOMService(
         return true;
     }
 
-    //to Understand: This method normalizes the reference ID by converting it to a string using the invariant culture. This ensures that the reference ID is consistently formatted, regardless of the system's locale settings. It helps maintain uniformity in how reference IDs are represented and compared within the application.
+    /// <summary>
+    /// Converts a numeric owner ID to its culture-independent string representation.
+    /// </summary>
     private static string NormalizeRefId(int refId) => refId.ToString(CultureInfo.InvariantCulture);
 
-    //to Understand: This method validates that the reference type and reference ID in the request match those in the route. If they do not match, it throws a MultiUOMReferenceMismatchException. This ensures that the request is consistent with the expected reference context.
+    /// <summary>
+    /// Ensures the request owner matches the owner identified by the route.
+    /// </summary>
     private static void ValidateRequestReference(
         MultiUOMRefType routeRefType,
         string routeRefId,
@@ -192,7 +208,9 @@ public sealed class MultiUOMService(
         }
     }
  
-    //to Understand: This method checks if the provided alternate UOM ID and base UOM ID exist in the database. If either of them does not exist, it throws a MultiUOMSetupNotFoundException. This ensures that the UOM IDs being used in the request are valid and present in the system.
+    /// <summary>
+    /// Ensures both the alternate and base UOM IDs refer to configured UOMs.
+    /// </summary>
     private async Task ValidateUOMIdsAsync(
         int altUOMId,
         int baseUOMId,
@@ -209,6 +227,9 @@ public sealed class MultiUOMService(
         }
     }
 
+    /// <summary>
+    /// Ensures the owner does not already have the alternate UOM, optionally excluding the record being updated.
+    /// </summary>
     private async Task EnsureAlternateUOMIsUniqueAsync(
         MultiUOMRefType refType,
         string refId,
@@ -229,7 +250,141 @@ public sealed class MultiUOMService(
                 refId);
         }
     }
+    /// <summary>
+    /// Retrieves the base UOM ID for a given reference type and reference ID, or throws
+    /// </summary>
+    /// <param name="refType">The reference type (e.g., Product, RawMaterial).</param>
+    /// <param name="refId">The reference ID of the owner.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>The base UOM ID as an integer.</returns>
+    /// <exception cref="MultiUOMOwnerNotFoundException">Thrown if the owner does
+    /// not exist.</exception>
+    /// <exception cref="ArgumentException">Thrown if the provided reference ID is invalid.</exception>
+    /// <remarks>
+    public async Task<int?> GetBaseUOMIdAsync(
+        MultiUOMRefType refType,
+        int refId,
+        CancellationToken cancellationToken)
+    {
+        if(!int.TryParse(refId.ToString(), out var referenceId))
+        {
+            
+            throw new ArgumentException("Invalid reference ID", nameof(refId));
+        }
 
+        var baseUOMId = await repository.GetOwnerBaseUOMIdAsync(refType, referenceId, cancellationToken);
+       
+        if (!baseUOMId.HasValue)
+        {
+            throw new MultiUOMOwnerNotFoundException(refType.ToString(), refId.ToString(CultureInfo.InvariantCulture));
+        }
+
+        return baseUOMId.Value;
+    }
+    /// <summary>
+    /// Retrieves the base UOM code for a given reference type and reference ID, or throws
+    /// an exception if the owner does not exist.
+    /// </summary>
+    /// <param name="refType">The reference type (e.g., Product, RawMaterial).</param>
+    /// <param name="refId">The reference ID of the owner.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>The base UOM code as a string.</returns>
+    /// <exception cref="MultiUOMOwnerNotFoundException">Thrown if the owner does
+    /// not exist.</exception>
+    /// <exception cref="ArgumentException">Thrown if the provided reference ID is invalid.</exception>
+    /// <remarks>
+    /// This method retrieves the base UOM code for a given reference type and reference ID.
+    /// If the owner does not exist, a <see cref="MultiUOMOwnerNotFoundException"/> is thrown. If the provided reference ID is invalid, an <see cref="ArgumentException"/> is thrown.
+    /// </remarks>
+    
+    public async Task<string?> GetBaseUOMCodeAsync(
+        MultiUOMRefType refType,
+        int refId,
+        CancellationToken cancellationToken = default)
+    {
+        if(!int.TryParse(refId.ToString(), out var referenceId))
+        {
+            throw new ArgumentException("Invalid reference ID", nameof(refId));
+        }
+        
+        var baseUOMCode = await repository.GetOwnerBaseUOMCodeAsync(refType, referenceId, cancellationToken);
+        if (baseUOMCode is null)
+        {
+            throw new MultiUOMOwnerNotFoundException(refType.ToString(), refId.ToString(CultureInfo.InvariantCulture));
+        }
+
+        return baseUOMCode;
+    }
+
+    /// <summary>
+    /// Retrieves the UOM code for a given UOM ID, or throws an exception if
+    /// the UOM does not exist.
+    /// </summary>
+    /// <param name="uomID">The ID of the UOM.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>The UOM code as a string.</returns>
+    /// <exception cref="MultiUOMSetupNotFoundException">Thrown if the UOM
+    /// does not exist.</exception>
+    /// <exception cref="ArgumentException">Thrown if the provided UOM ID is invalid.</exception>
+    /// <remarks>
+    /// This method retrieves the UOM code for a given UOM ID. If the U
+    /// OM does not exist, a <see cref="MultiUOMSetupNotFoundException"/> is thrown. If the provided UOM ID is invalid, an <see cref="ArgumentException"/> is thrown.
+    /// </remarks>
+    public async Task<string?> GetMultiUOMCodeAsync(int uomID, CancellationToken cancellationToken = default)
+    {
+        if(!int.TryParse(uomID.ToString(), out var uomId))
+        {
+            throw new ArgumentException("Invalid UOM ID", nameof(uomID));
+        }
+        var multiUOMCode = await repository.GetMultiUOMCodeAsync(uomID, cancellationToken);
+        if (multiUOMCode is null)
+        {
+            throw new MultiUOMSetupNotFoundException(uomID);
+        }
+
+        return multiUOMCode;
+    }
+
+    /// <summary>
+    /// Retrieves the conversion factor for a given alternate UOM ID, or <see langword
+    /// ="null"/> if the alternate UOM does not exist.
+    /// </summary>
+    /// <param name="id">The ID of the alternate UOM.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>The conversion factor, or <see langword="null"/> if the alternate
+    /// UOM does not exist.</returns>
+    /// <exception cref="MultiUOMSetupNotFoundException">Thrown if the alternate UOM does not exist.</exception>
+    /// <exception cref="ArgumentException">Thrown if the provided ID is invalid.</exception>
+    /// <remarks>
+    /// This method retrieves the conversion factor for a given alternate UOM ID. If the alternate
+    /// UOM does not exist, a <see cref="MultiUOMSetupNotFoundException"/> is thrown. If the provided ID is invalid, an <see cref="ArgumentException"/> is thrown.
+    /// </remarks>
+
+    public async Task<int?> GetMultiUOMIdAsync(string code, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            throw new ArgumentException("Invalid UOM code", nameof(code));
+        }
+
+        var multiUOMId = await repository.GetMultiUOMId(code, cancellationToken);
+        
+        if (multiUOMId is null)
+        {
+            throw new MultIUOMSetupNotFoundExceptionString(code);
+        }
+
+        return multiUOMId;
+    }
+
+    /// <summary>
+    /// Maps a persisted alternate UOM conversion to its API data transfer object.
+    /// </summary>
+    /// <param name="multiUOM">The persisted alternate UOM conversion.</param>
+    /// <returns>The API data transfer object representing the alternate UOM conversion.</returns>
+    /// <remarks>
+    /// This method maps a persisted alternate UOM conversion to its corresponding API data transfer object (
+    
     private static MultiUOMDTO ToDTO(MultiUOM multiUOM) => new()
     {
         id = multiUOM.id,
