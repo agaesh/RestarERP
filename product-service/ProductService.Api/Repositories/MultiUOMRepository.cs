@@ -40,6 +40,10 @@ public sealed class MultiUOMRepository(ProductDbContext dbContext) : IMultiUOMRe
         };
     }
 
+    /// <summary>
+    /// Finds an alternate UOM record by its ID and owner, without tracking it for changes.
+    /// Returns <see langword="null"/> if no record matches all three values.
+    /// </summary>
     public Task<MultiUOM?> GetByIdAsync(
         int id,
         MultiUOMRefType refType,
@@ -107,5 +111,134 @@ public sealed class MultiUOMRepository(ProductDbContext dbContext) : IMultiUOMRe
     public void Remove(MultiUOM multiUOM)
     {
         dbContext.MultiUOMs.Remove(multiUOM);
+    }
+
+    // <summary>
+    /// Gets the base UOM code for the given reference type and reference ID, or null if not found.
+    /// </summary>
+    /// <param name="refType">The reference type (Product or RawMaterial).</param>
+    /// <param name="refId">The reference ID as a string.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>The base UOM code as a string, or null if not found.</returns>
+    
+    public async Task<int?> GetOwnerBaseUOMIdAsync(
+        MultiUOMRefType refType,
+        int refId,
+        CancellationToken cancellationToken = default)
+    {
+        //getting base uom code based on reference type and reference id, then getting base uom id based on base uom code
+        var baseUomCode = refType switch
+        {
+            MultiUOMRefType.Product => await dbContext.Products
+                .Where(product => product.id == refId)
+                .Select(product => product.uom)
+                .SingleOrDefaultAsync(cancellationToken),
+            MultiUOMRefType.RawMaterial => await dbContext.RawMaterials
+                .Where(material => material.id == refId)
+                .Select(material => material.uom)
+                .SingleOrDefaultAsync(cancellationToken),
+            _ => null
+        };
+
+        if (baseUomCode == null) return null;
+       //getting base uom id based on base uom code
+       var baseUomId = await dbContext.UOMs
+            .Where(uom => uom.Code == baseUomCode)
+            .Select(uom => (int?)uom.Id)
+            .SingleOrDefaultAsync(cancellationToken);
+
+        return baseUomId;
+    }
+
+    ///<summary>
+    /// Gets the UOM code for the given UOM ID, or null if not found
+    ///     </summary>
+    /// <param name="uomID">The UOM ID.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>The UOM code, or null if not found.</returns>
+
+    public async Task<string?> GetOwnerBaseUOMCodeAsync(
+        MultiUOMRefType refType,
+        int refId,
+        CancellationToken cancellationToken = default
+    )
+    {
+        // Get the base UOM code based on the reference type and reference ID
+        var baseUomCode = refType switch
+        {
+            MultiUOMRefType.Product => await dbContext.Products
+                .Where(product => product.id == refId)
+                .Select(product => product.uom)
+                .SingleOrDefaultAsync(cancellationToken),
+            MultiUOMRefType.RawMaterial => await dbContext.RawMaterials
+                .Where(material => material.id == refId)
+                .Select(material => material.uom)
+                .SingleOrDefaultAsync(cancellationToken),
+            _ => null
+        };
+        
+        return baseUomCode;
+    }
+
+        /// <summary>
+    /// Gets the MultiUOM ID for the given UOM code, or null if not
+    /// not found.  
+    /// </summary>
+    /// <param name="code"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    
+    public async Task<int?> GetMultiUOMId(string code, CancellationToken cancellationToken = default)
+    {
+        // Get the MultiUOM ID based on the UOM code
+        var multiuom = await dbContext.MultiUOMs.AsNoTracking()
+            .Where(m => m.altUOMId == dbContext.UOMs
+                .Where(u => u.Code == code)
+                .Select(u => u.Id)
+                .SingleOrDefault())
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return multiuom?.id;
+    }
+    
+    /// <summary>
+    /// Gets the UOM entity for the given UOM ID, or null if not found
+    /// </summary>
+    /// <param name="uomId">The UOM ID.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>The UOM entity, or null if not found.</returns>
+    
+    public async Task<string?> GetMultiUOMCodeAsync(int uomID, CancellationToken cancellationToken = default)
+    {
+      
+        var multiuom = await dbContext.MultiUOMs.AsNoTracking()
+            .SingleOrDefaultAsync(u => u.altUOMId == uomID, cancellationToken);
+        
+        if (multiuom is null) return null;
+
+        var uom = await dbContext.UOMs.AsNoTracking()
+            .Where(u => u.Id == multiuom.altUOMId)
+            .Select(u => u.Code)
+            .SingleOrDefaultAsync(cancellationToken);
+        
+        return uom;
+    }
+
+    /// <summary>
+    /// Gets the conversion factor for the given MultiUOM ID, or null if not found.
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+
+    public async Task<Decimal?> GetConversionFactor(int id, CancellationToken cancellationToken = default)
+    {
+        var multiuom = await dbContext.MultiUOMs.AsNoTracking()
+            .Where(m => m.id == id)
+            .SingleOrDefaultAsync(cancellationToken);
+
+       if ((multiuom?.conversionFactor ?? 0) <= 0) return null;
+
+        return multiuom?.conversionFactor;
     }
 }

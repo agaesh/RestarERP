@@ -41,4 +41,13 @@ public interface IMultiUOMRepository
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 
     void Remove(MultiUOM multiUOM);
+
+    Task<int?> GetOwnerBaseUOMIdAsync(
+        MultiUOMRefType refType,
+        int refId,
+        CancellationToken cancellationToken = default);
+
+    Task<string?> GetMultiUOMCodeAsync(int uomID,CancellationToken cancellationToken = default);
+
+    Task<Decimal?> GetConversionFactor(int id, CancellationToken cancellationToken = default);
 }
