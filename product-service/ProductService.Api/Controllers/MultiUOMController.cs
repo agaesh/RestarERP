@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using RestarProduct.DTOs;
 using RestarProduct.Enums;
-using RestarProduct.Exceptions;
 using RestarProduct.Interfaces;
 
 namespace RestarProduct.Controllers;
@@ -48,35 +47,16 @@ public sealed class MultiUOMController(
         CancellationToken cancellationToken)
     {
         var refType = ToRefType(ownerType);
-        try
-        {
-            var created = await service.CreateAsync(refType, ownerId, request, cancellationToken);
-            logger.LogInformation(
-                "Created MultiUOM setup {MultiUOMId} for {OwnerType} {OwnerId}",
-                created.id,
-                ownerType,
-                ownerId);
-            return CreatedAtRoute(
-                "GetMultiUOM",
-                new { ownerType, ownerId, multiUOMId = created.id },
-                created);
-        }
-        catch (MultiUOMOwnerNotFoundException ex)
-        {
-            return NotFound(new { success = false, message = ex.Message });
-        }
-        catch (MultiUOMAlreadyExistsException ex)
-        {
-            return Conflict(new { success = false, message = ex.Message });
-        }
-        catch (MultiUOMSetupNotFoundException ex)
-        {
-            return BadRequest(new { success = false, message = ex.Message });
-        }
-        catch (MultiUOMReferenceMismatchException ex)
-        {
-            return BadRequest(new { success = false, message = ex.Message });
-        }
+        var created = await service.CreateAsync(refType, ownerId, request, cancellationToken);
+        logger.LogInformation(
+            "Created MultiUOM setup {MultiUOMId} for {OwnerType} {OwnerId}",
+            created.id,
+            ownerType,
+            ownerId);
+        return CreatedAtRoute(
+            "GetMultiUOM",
+            new { ownerType, ownerId, multiUOMId = created.id },
+            created);
     }
 
     [HttpPut("{multiUOMId:int:min(1)}")]
@@ -87,34 +67,19 @@ public sealed class MultiUOMController(
         [FromBody] UpdateMultiUOMDTO request,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            var updated = await service.UpdateAsync(
-                multiUOMId,
-                ToRefType(ownerType),
-                ownerId,
-                request,
-                cancellationToken);
-            return updated
-                ? NoContent()
-                : NotFound(new
-                {
-                    success = false,
-                    message = $"MultiUOM setup {multiUOMId} was not found for this owner."
-                });
-        }
-        catch (MultiUOMAlreadyExistsException ex)
-        {
-            return Conflict(new { success = false, message = ex.Message });
-        }
-        catch (MultiUOMSetupNotFoundException ex)
-        {
-            return BadRequest(new { success = false, message = ex.Message });
-        }
-        catch (MultiUOMReferenceMismatchException ex)
-        {
-            return BadRequest(new { success = false, message = ex.Message });
-        }
+        var updated = await service.UpdateAsync(
+            multiUOMId,
+            ToRefType(ownerType),
+            ownerId,
+            request,
+            cancellationToken);
+        return updated
+            ? NoContent()
+            : NotFound(new
+            {
+                success = false,
+                message = $"MultiUOM setup {multiUOMId} was not found for this owner."
+            });
     }
 
     [HttpDelete("{multiUOMId:int:min(1)}")]
