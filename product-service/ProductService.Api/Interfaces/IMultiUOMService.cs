@@ -45,7 +45,11 @@ public interface IMultiUOMService
         int refId,
         CancellationToken cancellationToken = default);
     
-    Task<int?> GetMultiUOMIdAsync(int uomID, CancellationToken cancellationToken = default);
+    Task<int?> GetMultiUOMIdAsync(
+        string code,
+        CancellationToken cancellationToken = default);
 
-    Task<string?> GetMultiUOMCodeAsync(int uomID, CancellationToken cancellationToken = default);    
+    Task<string?> GetMultiUOMCodeAsync(
+        int uomID,
+        CancellationToken cancellationToken = default);    
 }
