@@ -35,6 +35,13 @@ public interface IMultiUOMService
         int referenceId,
         CancellationToken cancellationToken = default);
 
+    Task<decimal?> GetConversionFactorAsync(
+        MultiUOMRefType refType,
+        int referenceId,
+        int fromUOMId,
+        int toUOMId,
+        CancellationToken cancellationToken = default);
+
     Task<int?> GetBaseUOMIdAsync(
         MultiUOMRefType refType,
         int refId,

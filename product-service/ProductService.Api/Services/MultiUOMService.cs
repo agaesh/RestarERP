@@ -61,6 +61,45 @@ public sealed class MultiUOMService(
             cancellationToken);
         return multiUOM is null ? null : ToDTO(multiUOM);
     }
+    /// <summary>
+    /// Resolves the conversion factor between two UOMs through the owner's primary UOM.
+    /// </summary>
+    public async Task<decimal?> GetConversionFactorAsync(
+        MultiUOMRefType refType,
+        int referenceId,
+        int fromUOMId,
+        int toUOMId,
+        CancellationToken cancellationToken = default)
+    {
+        var refId = NormalizeRefId(referenceId);
+        if (!await repository.ReferenceExistsAsync(refType, refId, cancellationToken)
+            || !await repository.UOMExistsAsync(fromUOMId, cancellationToken)
+            || !await repository.UOMExistsAsync(toUOMId, cancellationToken))
+        {
+            return null;
+        }
+
+        var primaryUOMId = await repository.GetOwnerBaseUOMIdAsync(
+            refType,
+            referenceId,
+            cancellationToken);
+        if (primaryUOMId is null)
+        {
+            throw new MultiUOMInvalidConfigurationException(
+                "The owner must have a valid primary UOM configured before conversions can be resolved.");
+        }
+
+        var multiUOMs = await repository.GetByReferenceAsync(refType, refId, cancellationToken);
+        var conversions = multiUOMs.ToDictionary(multiUOM => multiUOM.altUOMId);
+        var fromFactor = GetFactorToPrimary(fromUOMId, primaryUOMId.Value, conversions);
+        var toFactor = GetFactorToPrimary(toUOMId, primaryUOMId.Value, conversions);
+        if (fromFactor is null || toFactor is null)
+        {
+            return null;
+        }
+
+        return fromFactor.Value / toFactor.Value;
+    }
 
     /// <summary>
     /// Validates and creates an alternate UOM conversion for the specified owner.
@@ -85,6 +124,13 @@ public sealed class MultiUOMService(
 
         //validate that the provided alternate UOM ID and base UOM ID exist in the database.
         await ValidateUOMIdsAsync(request.alt_uom_id, request.base_uom_id, cancellationToken);
+        await ValidateConversionPathAsync(
+            refType,
+            refId,
+            request.alt_uom_id,
+            request.base_uom_id,
+            request.conversion_factor,
+            cancellationToken: cancellationToken);
         
         //ensure that the alternate UOM is unique for the given reference type and reference ID, throwing an exception if a duplicate is found.
         await EnsureAlternateUOMIsUniqueAsync(
@@ -140,6 +186,14 @@ public sealed class MultiUOMService(
         }
         //check if the reference exists in the database, if not throw MultiUOMOwnerNotFoundException.
         await ValidateUOMIdsAsync(request.alt_uom_id, request.base_uom_id, cancellationToken);
+        await ValidateConversionPathAsync(
+            refType,
+            refId,
+            request.alt_uom_id,
+            request.base_uom_id,
+            request.conversion_factor,
+            id,
+            cancellationToken);
         
         //below method that alternate UOM Is unique during creation and
         // help to avoid prevention for update operation avoid choosing own id that result like duplicate.
@@ -225,6 +279,105 @@ public sealed class MultiUOMService(
         {
             throw new MultiUOMSetupNotFoundException(baseUOMId);
         }
+    }
+
+    /// <summary>
+    /// Verifies that the proposed alternate UOM reaches the owner's primary UOM without a cycle.
+    /// </summary>
+    private async Task ValidateConversionPathAsync(
+        MultiUOMRefType refType,
+        string refId,
+        int altUOMId,
+        int baseUOMId,
+        decimal? conversionFactor,
+        int? excludingId = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (altUOMId == baseUOMId)
+        {
+            throw new MultiUOMInvalidConfigurationException(
+                "The base UOM and alternate UOM must be different.");
+        }
+
+        if (conversionFactor is not > 0)
+        {
+            throw new MultiUOMInvalidConfigurationException(
+                "The conversion factor must be greater than zero.");
+        }
+
+        if (!int.TryParse(refId, NumberStyles.None, CultureInfo.InvariantCulture, out var referenceId))
+        {
+            throw new MultiUOMOwnerNotFoundException(refType.ToString(), refId);
+        }
+
+        var primaryUOMId = await repository.GetOwnerBaseUOMIdAsync(
+            refType,
+            referenceId,
+            cancellationToken);
+        if (primaryUOMId is null)
+        {
+            throw new MultiUOMInvalidConfigurationException(
+                "The owner must have a valid primary UOM configured before conversions can be added.");
+        }
+
+        if (altUOMId == primaryUOMId.Value)
+        {
+            throw new MultiUOMInvalidConfigurationException(
+                "The owner's primary UOM cannot be used as an alternate UOM.");
+        }
+
+        var existingMultiUOMs = await repository.GetByReferenceAsync(
+            refType,
+            refId,
+            cancellationToken);
+        var conversions = existingMultiUOMs
+            .Where(multiUOM => multiUOM.id != excludingId)
+            .ToDictionary(multiUOM => multiUOM.altUOMId);
+        conversions[altUOMId] = new MultiUOM
+        {
+            altUOMId = altUOMId,
+            baseUOMId = baseUOMId,
+            conversionFactor = conversionFactor
+        };
+
+        if (GetFactorToPrimary(altUOMId, primaryUOMId.Value, conversions) is null)
+        {
+            throw new MultiUOMInvalidConfigurationException(
+                "The conversion must lead to the owner's primary UOM without creating a cycle.");
+        }
+    }
+
+    /// <summary>
+    /// Calculates a UOM's cumulative factor to the primary UOM, or returns null for a missing or cyclic path.
+    /// </summary>
+    private static decimal? GetFactorToPrimary(
+        int uomId,
+        int primaryUOMId,
+        IReadOnlyDictionary<int, MultiUOM> conversions)
+    {
+        var factor = 1m;
+        var currentUOMId = uomId;
+        var visited = new HashSet<int>();
+
+        while (currentUOMId != primaryUOMId)
+        {
+            if (!visited.Add(currentUOMId)
+                || !conversions.TryGetValue(currentUOMId, out var conversion))
+            {
+                return null;
+            }
+
+            if (conversion.conversionFactor is not > 0)
+            {
+                throw new MultiUOMInvalidConfigurationException(
+                    $"The saved conversion for alternate UOM {currentUOMId} has an invalid conversion factor.");
+            }
+
+            factor *= conversion.conversionFactor.Value;
+            currentUOMId = conversion.baseUOMId;
+        }
+
+        return factor;
     }
 
     /// <summary>
