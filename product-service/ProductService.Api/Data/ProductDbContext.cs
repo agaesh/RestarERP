@@ -10,6 +10,8 @@ public class ProductDbContext(DbContextOptions<ProductDbContext> options) : DbCo
     public DbSet<RawMaterial> RawMaterials => Set<RawMaterial>();
 
     public DbSet<UOM> UOMs => Set<UOM>();
+
+    public DbSet<MultiUOM> MultiUOMs => Set<MultiUOM>();
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Product>()
@@ -54,5 +56,36 @@ public class ProductDbContext(DbContextOptions<ProductDbContext> options) : DbCo
         modelBuilder.Entity<RawMaterial>()
             .Property(material => material.uom)
             .HasMaxLength(50);
+
+        modelBuilder.Entity<MultiUOM>()
+            .Property(multiUOM => multiUOM.conversionFactor)
+            .HasColumnType("decimal(10, 6)");
+
+        modelBuilder.Entity<MultiUOM>()
+            .HasIndex(multiUOM => multiUOM.altUOMId);
+
+        modelBuilder.Entity<MultiUOM>()
+            .HasIndex(multiUOM => new
+            {
+                multiUOM.refType,
+                multiUOM.refId,
+                multiUOM.altUOMId
+            })
+            .IsUnique()
+            .HasDatabaseName("IX_MultiUOM_refType_refId_altUOMId");
+
+        modelBuilder.Entity<MultiUOM>()
+            .HasOne(multiUOM => multiUOM.altUOM)
+            .WithMany()
+            .HasForeignKey(multiUOM => multiUOM.altUOMId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .HasConstraintName("FK_MultiUOM_UOMSetup_alt_uom_id");
+
+        modelBuilder.Entity<MultiUOM>()
+            .HasOne(multiUOM => multiUOM.baseUOM)
+            .WithMany()
+            .HasForeignKey(multiUOM => multiUOM.baseUOMId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .HasConstraintName("FK_MultiUOM_UOMSetup_base_uom_id");
     }
 }
