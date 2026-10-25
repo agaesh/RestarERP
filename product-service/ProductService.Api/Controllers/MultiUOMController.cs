@@ -39,6 +39,33 @@ public sealed class MultiUOMController(
         return multiUOM is null ? NotFound() : Ok(multiUOM);
     }
 
+    [HttpGet("conversion")]
+    public async Task<ActionResult<ConversionFactorResponseDTO>> GetConversionFactor(
+        string ownerType,
+        int ownerId,
+        [FromQuery(Name = "from_uom_id")] int fromUOMId,
+        [FromQuery(Name = "to_uom_id")] int toUOMId,
+        CancellationToken cancellationToken)
+    {
+        var conversionFactor = await service.GetConversionFactorAsync(
+            ToRefType(ownerType),
+            ownerId,
+            fromUOMId,
+            toUOMId,
+            cancellationToken);
+        if (conversionFactor is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(new ConversionFactorResponseDTO
+        {
+            from_uom_id = fromUOMId,
+            to_uom_id = toUOMId,
+            conversion_factor = conversionFactor.Value
+        });
+    }
+
     [HttpPost]
     public async Task<ActionResult<MultiUOMDTO>> Create(
         string ownerType,
