@@ -23,6 +23,9 @@ public sealed class MultiUOMEndpointsTests : IDisposable
         factory.InitializeDatabase();
     }
 
+    /// <summary>
+    /// Verifies creating a product conversion, retrieving it through its Location, listing it, and rejecting a duplicate.
+    /// </summary>
     [Fact]
     public async Task PostMultiUOM_CreatesAndListsSetup_AndDuplicateReturnsConflict()
     {
@@ -56,6 +59,9 @@ public sealed class MultiUOMEndpointsTests : IDisposable
         Assert.Contains("already exists", duplicateError.Error!, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Verifies updating a conversion to use an alternate UOM already assigned to the same owner returns a conflict response.
+    /// </summary>
     [Fact]
     public async Task PutMultiUOM_WhenAlternateUOMIsAlreadyUsed_ReturnsConflictApiResponse()
     {
@@ -91,6 +97,9 @@ public sealed class MultiUOMEndpointsTests : IDisposable
         Assert.Contains("already exists", error.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Verifies a conversion cannot use the same UOM as both its alternate and base UOM.
+    /// </summary>
     [Fact]
     public async Task PostMultiUOM_WhenBaseAndAlternateUOMAreSame_ReturnsBadRequest()
     {
@@ -106,7 +115,9 @@ public sealed class MultiUOMEndpointsTests : IDisposable
         Assert.Contains("invalid", error.Message, StringComparison.OrdinalIgnoreCase);
     }
 
-    //this test is to check chained conversion returns correct message 
+    /// <summary>
+    /// Verifies chained conversions resolve to the correct forward and inverse conversion factors.
+    /// </summary>
     [Fact]
     public async Task PostMultiUOM_AllowsChainedConversionsAndResolvesConversionFactor()
     {
@@ -141,6 +152,9 @@ public sealed class MultiUOMEndpointsTests : IDisposable
         Assert.Equal(0.01m, inverse!.conversion_factor);
     }
 
+    /// <summary>
+    /// Verifies conversion lookup returns not found when there is no configured path between the requested UOMs.
+    /// </summary>
     [Fact]
     public async Task GetConversionFactor_WhenNoConversionPathExists_ReturnsNotFound()
     {
@@ -152,6 +166,9 @@ public sealed class MultiUOMEndpointsTests : IDisposable
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    /// <summary>
+    /// Verifies requesting a MultiUOM record ID that does not exist returns not found.
+    /// </summary>
     [Fact]
     public async Task GetMultiUOM_WhenMissing_ReturnsNotFound()
     {
@@ -160,6 +177,9 @@ public sealed class MultiUOMEndpointsTests : IDisposable
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    /// <summary>
+    /// Verifies an existing conversion can be updated, retrieved with its new values, and deleted.
+    /// </summary>
     [Fact]
     public async Task PutAndDeleteMultiUOM_ReturnExpectedStatuses()
     {
@@ -190,8 +210,10 @@ public sealed class MultiUOMEndpointsTests : IDisposable
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/products/1/multi-uoms/{created.id}")).StatusCode);
     }
 
+    /// <summary>
+    /// Verifies an update that creates a conversion cycle is rejected and leaves the saved conversion unchanged.
+    /// </summary>
     [Fact]
-    //this testing is to check with 
     public async Task PutMultiUOM_WhenChangeWouldCreateCycle_ReturnsBadRequest()
     {
         var uoms = await CreateUOMsAsync();
@@ -241,6 +263,9 @@ public sealed class MultiUOMEndpointsTests : IDisposable
         Assert.Equal(12m, unchanged.conversion_factor);
     }
 
+    /// <summary>
+    /// Verifies the owner's primary UOM cannot be configured as an alternate UOM.
+    /// </summary>
     [Fact]
     public async Task PostMultiUOM_WhenPrimaryUOMIsSelectedAsAlternate_ReturnsBadRequest()
     {
@@ -257,6 +282,9 @@ public sealed class MultiUOMEndpointsTests : IDisposable
         Assert.Contains("invalid", error.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Verifies creation is rejected when either referenced UOM setup ID does not exist.
+    /// </summary>
     [Fact]
     public async Task PostMultiUOM_WhenUOMCodeDoesNotExist_ReturnsBadRequest()
     {
@@ -271,6 +299,9 @@ public sealed class MultiUOMEndpointsTests : IDisposable
         Assert.Contains("unknown UOM", error.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Verifies model validation rejects a creation request that omits required UOM fields.
+    /// </summary>
     [Fact]
     public async Task PostMultiUOM_WhenRequiredFieldIsMissing_ReturnsBadRequest()
     {
@@ -285,6 +316,9 @@ public sealed class MultiUOMEndpointsTests : IDisposable
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    /// <summary>
+    /// Verifies creating a conversion for a nonexistent owner returns a not-found error response.
+    /// </summary>
     [Fact]
     public async Task PostMultiUOM_WhenOwnerDoesNotExist_ReturnsNotFound()
     {
@@ -297,6 +331,9 @@ public sealed class MultiUOMEndpointsTests : IDisposable
         Assert.Contains("owner", error.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Verifies creation is rejected when the request body owner differs from the owner in the route.
+    /// </summary>
     [Fact]
     public async Task PostMultiUOM_WhenBodyReferenceDoesNotMatchRoute_ReturnsBadRequest()
     {
@@ -314,6 +351,9 @@ public sealed class MultiUOMEndpointsTests : IDisposable
         Assert.Contains("does not match", error.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Verifies a MultiUOM record belonging to one owner cannot be retrieved through another owner's route.
+    /// </summary>
     [Fact]
     public async Task MultiUOMEndpoints_AreScopedToOwner()
     {
@@ -326,6 +366,9 @@ public sealed class MultiUOMEndpointsTests : IDisposable
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    /// <summary>
+    /// Verifies raw-material conversion creation and listing use the raw-material owner scope.
+    /// </summary>
     [Fact]
     public async Task RawMaterialMultiUOM_CreatesAndListsSetup()
     {
