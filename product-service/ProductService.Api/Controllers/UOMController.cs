@@ -67,12 +67,23 @@ public sealed class UOMController(
         {
             return Conflict(new { success = false, message = ex.Message });
         }
+        catch (UOMReferencedException ex)
+        {
+            return Conflict(new { success = false, message = ex.Message });
+        }
     }
 
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
-        var deleted = await uomService.DeleteAsync(id, cancellationToken);
-        return deleted ? NoContent() : NotFound();
+        try
+        {
+            var deleted = await uomService.DeleteAsync(id, cancellationToken);
+            return deleted ? NoContent() : NotFound();
+        }
+        catch (UOMReferencedException ex)
+        {
+            return Conflict(new { success = false, message = ex.Message });
+        }
     }
 }

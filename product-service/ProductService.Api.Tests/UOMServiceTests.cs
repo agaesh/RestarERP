@@ -3,6 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using RestarProduct.Data;
 using RestarProduct.DTOs;
+using RestarProduct.Enums;
+using RestarProduct.Exceptions;
+using RestarProduct.Models;
 using RestarProduct.Repositories;
 using RestarProduct.Services;
 
@@ -137,6 +140,35 @@ public sealed class UOMServiceTests : IDisposable
         Assert.True(result.update_date >= result.create_date);
     }
 
+    [Fact]
+    public async Task UpdateAsync_RejectsCodeChangeForReferencedUOMButAllowsOtherChanges()
+    {
+        var altUOM = await service.CreateAsync(CreateRequest("BOX", "Box"));
+        var baseUOM = await service.CreateAsync(CreateRequest("EA", "Each"));
+        dbContext.MultiUOMs.Add(new MultiUOM
+        {
+            altUOMId = altUOM.id,
+            baseUOMId = baseUOM.id,
+            refType = MultiUOMRefType.Product,
+            refId = "1"
+        });
+        await dbContext.SaveChangesAsync();
+
+        await Assert.ThrowsAsync<UOMReferencedException>(() => service.UpdateAsync(
+            altUOM.id,
+            new UpdateUOMDTO { uom_code = "CASE", uom_name = "Case" }));
+        await Assert.ThrowsAsync<UOMReferencedException>(() => service.UpdateAsync(
+            baseUOM.id,
+            new UpdateUOMDTO { uom_code = "UNIT", uom_name = "Unit" }));
+
+        var updated = await service.UpdateAsync(
+            baseUOM.id,
+            new UpdateUOMDTO { uom_code = "EA", uom_name = "Unit" });
+
+        Assert.True(updated);
+        Assert.Equal("Unit", (await service.GetByIdAsync(baseUOM.id))!.uom_name);
+    }
+
     // Returns false when attempting to update a UOM that does not exist.
     [Fact]
     public async Task UpdateAsync_ReturnsFalseWhenUOMDoesNotExist()
@@ -163,6 +195,27 @@ public sealed class UOMServiceTests : IDisposable
         Assert.True(persisted.UpdateDate >= created.create_date.UtcDateTime);
         Assert.Empty(await service.GetAllAsync(1, 10));
         Assert.Null(await service.GetByIdAsync(created.id));
+    }
+
+    [Fact]
+    public async Task DeleteAsync_RejectsDeletingEitherReferencedUOM()
+    {
+        var altUOM = await service.CreateAsync(CreateRequest("BOX", "Box"));
+        var baseUOM = await service.CreateAsync(CreateRequest("EA", "Each"));
+        dbContext.MultiUOMs.Add(new MultiUOM
+        {
+            altUOMId = altUOM.id,
+            baseUOMId = baseUOM.id,
+            refType = MultiUOMRefType.Product,
+            refId = "1"
+        });
+        await dbContext.SaveChangesAsync();
+
+        await Assert.ThrowsAsync<UOMReferencedException>(() => service.DeleteAsync(altUOM.id));
+        await Assert.ThrowsAsync<UOMReferencedException>(() => service.DeleteAsync(baseUOM.id));
+
+        Assert.False((await dbContext.UOMs.SingleAsync(uom => uom.Id == altUOM.id)).IsDelete);
+        Assert.False((await dbContext.UOMs.SingleAsync(uom => uom.Id == baseUOM.id)).IsDelete);
     }
 
     public void Dispose()

@@ -9,6 +9,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using RestarProduct.Data;
 using RestarProduct.DTOs;
+using RestarProduct.Enums;
+using RestarProduct.Models;
 
 namespace ProductService.Api.Tests;
 
@@ -230,6 +232,24 @@ public sealed class UOMEndpointsTests : IDisposable
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
     }
+
+    [Fact]
+    public async Task PutAndDeleteReferencedUOM_ReturnConflict()
+    {
+        var altResponse = await client.PostAsJsonAsync("/uoms", CreateRequest("BOX", "Box"));
+        var altUOM = await altResponse.Content.ReadFromJsonAsync<UOMDTO>();
+        var baseResponse = await client.PostAsJsonAsync("/uoms", CreateRequest("EA", "Each"));
+        var baseUOM = await baseResponse.Content.ReadFromJsonAsync<UOMDTO>();
+        await factory.AddMultiUOMAsync(altUOM!.id, baseUOM!.id);
+
+        var updateResponse = await client.PutAsJsonAsync(
+            $"/uoms/{altUOM.id}",
+            new UpdateUOMDTO { uom_code = "CASE", uom_name = "Case" });
+        var deleteResponse = await client.DeleteAsync($"/uoms/{baseUOM.id}");
+
+        Assert.Equal(HttpStatusCode.Conflict, updateResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, deleteResponse.StatusCode);
+    }
      
     public void Dispose()
     {
@@ -272,6 +292,20 @@ internal sealed class UOMApiFactory : WebApplicationFactory<Program>
         using var scope = Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ProductDbContext>();
         dbContext.Database.EnsureCreated();
+    }
+
+    public async Task AddMultiUOMAsync(int altUOMId, int baseUOMId)
+    {
+        using var scope = Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ProductDbContext>();
+        dbContext.MultiUOMs.Add(new MultiUOM
+        {
+            altUOMId = altUOMId,
+            baseUOMId = baseUOMId,
+            refType = MultiUOMRefType.Product,
+            refId = "1"
+        });
+        await dbContext.SaveChangesAsync();
     }
 
     protected override void Dispose(bool disposing)

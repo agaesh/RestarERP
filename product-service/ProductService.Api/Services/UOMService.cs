@@ -83,6 +83,12 @@ public sealed class UOMService(
         }
 
         var code = NormalizeCode(request.uom_code);
+        if (!string.Equals(NormalizeCode(uom.Code), code, StringComparison.Ordinal)
+            && await repository.IsReferencedAsync(id, cancellationToken))
+        {
+            throw new UOMReferencedException(id);
+        }
+
         if (await repository.CodeExistsAsync(code, id, cancellationToken))
         {
             throw new UOMCodeAlreadyExistsException(code);
@@ -119,6 +125,11 @@ public sealed class UOMService(
         {
             logger.LogWarning("Unit of measure deletion skipped because UOM {UOMId} was not found", id);
             return false;
+        }
+
+        if (await repository.IsReferencedAsync(id, cancellationToken))
+        {
+            throw new UOMReferencedException(id);
         }
 
         uom.IsDelete = true;

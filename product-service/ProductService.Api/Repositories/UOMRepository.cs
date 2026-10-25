@@ -53,6 +53,13 @@ public sealed class UOMRepository(ProductDbContext dbContext) : IUOMRepository
             cancellationToken);
     }
 
+    public Task<bool> IsReferencedAsync(int id, CancellationToken cancellationToken = default)
+    {
+        return dbContext.MultiUOMs.AnyAsync(
+            multiUOM => multiUOM.altUOMId == id || multiUOM.baseUOMId == id,
+            cancellationToken);
+    }
+
     public async Task<UOM> AddAsync(UOM uom, CancellationToken cancellationToken = default)
     {
         await dbContext.UOMs.AddAsync(uom, cancellationToken);
